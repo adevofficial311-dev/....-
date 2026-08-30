@@ -1,26 +1,25 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport"
-      content="width=device-width, initial-scale=1.0"><title>Cokeboys RLS Security Test</title><style>
+      content="width=device-width, initial-scale=1.0">
+
+<title>Cokeboys API Security Audit</title>
+
+<style>
 * {
   box-sizing: border-box;
 }
 
-html,
 body {
   margin: 0;
-  min-height: 100%;
-}
-
-body {
   min-height: 100vh;
   padding: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background:
-    radial-gradient(circle at 50% 0%, rgba(124,58,237,.18), transparent 45%),
+    radial-gradient(circle at 50% 0%,
+      rgba(124,58,237,.20),
+      transparent 45%),
     #07070b;
   color: #e5e7eb;
   font-family:
@@ -31,23 +30,24 @@ body {
     sans-serif;
 }
 
-.card {
+.container {
   width: 100%;
-  max-width: 520px;
-  padding: 24px;
-  border: 1px solid #242432;
+  max-width: 600px;
+  margin: auto;
+}
+
+.card {
+  background: rgba(16,16,24,.97);
+  border: 1px solid #292938;
   border-radius: 18px;
-  background: rgba(16,16,24,.96);
-  box-shadow:
-    0 20px 60px rgba(0,0,0,.55),
-    0 0 40px rgba(124,58,237,.08);
+  padding: 22px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
 }
 
 .logo {
   font-family: monospace;
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 800;
-  letter-spacing: .04em;
 }
 
 .logo span {
@@ -55,298 +55,524 @@ body {
 }
 
 .subtitle {
-  margin-top: 6px;
+  margin-top: 5px;
   color: #77778a;
   font-size: 13px;
 }
 
+.warning {
+  margin-top: 18px;
+  padding: 13px;
+  border-radius: 10px;
+  background: #17130a;
+  border: 1px solid #5c430d;
+  color: #facc15;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 button {
   width: 100%;
-  margin-top: 22px;
-  padding: 14px 16px;
+  margin-top: 18px;
+  padding: 14px;
   border: 0;
   border-radius: 11px;
   background: #7c3aed;
   color: white;
   font-size: 15px;
   font-weight: 700;
-  cursor: pointer;
-}
-
-button:active {
-  transform: scale(.98);
 }
 
 button:disabled {
-  opacity: .6;
-  cursor: wait;
-}
-
-.result {
-  margin-top: 18px;
-  padding: 15px;
-  min-height: 100px;
-  border: 1px solid #292938;
-  border-radius: 12px;
-  background: #09090e;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-family: monospace;
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-.good {
-  border-color: #14532d;
-  color: #86efac;
-}
-
-.warning {
-  border-color: #854d0e;
-  color: #facc15;
-}
-
-.danger {
-  border-color: #7f1d1d;
-  color: #fca5a5;
-}
-
-.info {
-  color: #c4b5fd;
-}
-
-.small {
-  margin-top: 14px;
-  color: #626273;
-  font-size: 11px;
-  line-height: 1.5;
+  opacity: .55;
 }
 
 .status {
-  margin-top: 16px;
+  margin-top: 15px;
   color: #88889a;
   font-size: 12px;
 }
-</style></head><body><div class="card">  <div class="logo">
-    COKE<span>BOYS</span>
-  </div>  <div class="subtitle">
-    Supabase RLS Security Test · Read Only
-  </div>  <button id="testButton" onclick="runTest()">
-    Run Security Test
-  </button>  <div id="status" class="status">
-    Ready.
-  </div>  <div id="result" class="result">
-Press "Run Security Test" to begin.
-  </div>  <div class="small">
-    This test only sends GET requests. It does not claim,
-    update, delete, insert, or consume any key.
-  </div></div><script>
 
-const SUPABASE_URL =
-  "https://lixcptmizfmndutoxrxr.supabase.co";
-
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpeGNwdG1pemZtbmR1dG94cnhyIiwiaWF0IjoxNzgxMDQ2NjQ2LCJleHAiOjIwOTY2MjI2NDZ9.GxHk4LIC9fQbtyeUd0POaX5OoPtM-tbIloY07pYueOc";
-
-const button = document.getElementById("testButton");
-const statusBox = document.getElementById("status");
-const resultBox = document.getElementById("result");
-
-function showResult(type, status, text) {
-
-  resultBox.className = "result " + type;
-
-  statusBox.textContent = status;
-
-  resultBox.textContent = text;
+.results {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-async function runTest() {
+.endpoint {
+  padding: 14px;
+  border-radius: 12px;
+  background: #09090e;
+  border: 1px solid #292938;
+}
 
-  button.disabled = true;
-  button.textContent = "Testing...";
-  
-  showResult(
-    "info",
-    "Connecting to Supabase...",
-    "Running read-only RLS test..."
-  );
+.endpoint.good {
+  border-color: #14532d;
+}
+
+.endpoint.warn {
+  border-color: #854d0e;
+}
+
+.endpoint.bad {
+  border-color: #7f1d1d;
+}
+
+.endpoint.info {
+  border-color: #3730a3;
+}
+
+.endpoint-name {
+  font-family: monospace;
+  font-size: 12px;
+  color: #c4b5fd;
+  word-break: break-all;
+}
+
+.endpoint-status {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.endpoint-details {
+  margin-top: 8px;
+  color: #8b8b9b;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.good .endpoint-status {
+  color: #4ade80;
+}
+
+.warn .endpoint-status {
+  color: #facc15;
+}
+
+.bad .endpoint-status {
+  color: #f87171;
+}
+
+.info .endpoint-status {
+  color: #a78bfa;
+}
+
+.footer {
+  margin-top: 15px;
+  color: #555565;
+  font-size: 11px;
+  line-height: 1.5;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card">
+
+  <div class="logo">
+    COKE<span>BOYS</span>
+  </div>
+
+  <div class="subtitle">
+    Public API / Verification Flow Audit
+  </div>
+
+  <div class="warning">
+    READ-ONLY TEST. This audit only performs GET, HEAD and
+    OPTIONS requests. It does not submit verification,
+    generate keys, claim keys, extend keys, or modify data.
+  </div>
+
+  <button id="run" onclick="runAudit()">
+    Run Non-Destructive Audit
+  </button>
+
+  <div id="status" class="status">
+    Ready.
+  </div>
+
+  <div id="results" class="results"></div>
+
+  <div class="footer">
+    Results indicate endpoint accessibility only.
+    A reachable endpoint does not automatically mean
+    that the endpoint is vulnerable.
+  </div>
+
+</div>
+
+</div>
+
+<script>
+
+/*
+ * CURRENT PUBLIC SERVICES
+ *
+ * The live Cokeboys portal currently references:
+ *
+ * https://cokeboys-token.cokeboysclient.workers.dev/startlinkvertise
+ *
+ * We deliberately do NOT call any key-generation,
+ * extension, POST, PATCH, PUT or DELETE endpoint.
+ */
+
+const ENDPOINTS = [
+
+  {
+    name: "Verification Worker",
+    url:
+      "https://cokeboys-token.cokeboysclient.workers.dev/",
+    method: "GET"
+  },
+
+  {
+    name: "Linkvertise Start Endpoint",
+    url:
+      "https://cokeboys-token.cokeboysclient.workers.dev/startlinkvertise",
+    method: "GET"
+  },
+
+  {
+    name: "Key Portal",
+    url:
+      "https://cokeboys-keys.pages.dev/",
+    method: "GET"
+  }
+
+];
+
+
+/*
+ * Creates an endpoint result card.
+ */
+
+function createCard(endpoint) {
+
+  const card = document.createElement("div");
+
+  card.className = "endpoint info";
+
+  card.innerHTML = `
+    <div class="endpoint-name">
+      ${escapeHTML(endpoint.name)}
+    </div>
+
+    <div class="endpoint-status">
+      Testing...
+    </div>
+
+    <div class="endpoint-details">
+      ${escapeHTML(endpoint.method)}
+      ${escapeHTML(endpoint.url)}
+    </div>
+  `;
+
+  document.getElementById("results").appendChild(card);
+
+  return card;
+}
+
+
+/*
+ * Updates a result card.
+ */
+
+function updateCard(
+  card,
+  type,
+  title,
+  details
+) {
+
+  card.className =
+    "endpoint " + type;
+
+  const status =
+    card.querySelector(".endpoint-status");
+
+  const detailsBox =
+    card.querySelector(".endpoint-details");
+
+  status.textContent = title;
+
+  detailsBox.textContent = details;
+}
+
+
+/*
+ * Safely escape displayed strings.
+ */
+
+function escapeHTML(value) {
+
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+
+/*
+ * Test a public endpoint.
+ *
+ * IMPORTANT:
+ *
+ * We use GET only.
+ *
+ * We do NOT:
+ *
+ * POST
+ * PUT
+ * PATCH
+ * DELETE
+ *
+ * Therefore this audit cannot intentionally
+ * create/claim/extend/delete a key.
+ */
+
+async function testEndpoint(endpoint, card) {
+
+  const started =
+    performance.now();
 
   try {
 
-    const endpoint =
-      SUPABASE_URL +
-      "/rest/v1/keys" +
-      "?select=id,key,claimed,used,expires_at" +
-      "&limit=5";
+    const response =
+      await fetch(endpoint.url, {
 
-    const response = await fetch(endpoint, {
-      method: "GET",
+        method: endpoint.method,
 
-      headers: {
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization":
-          "Bearer " + SUPABASE_ANON_KEY
-      },
+        mode: "cors",
 
-      cache: "no-store"
-    });
+        credentials: "omit",
 
-    const responseText = await response.text();
+        cache: "no-store",
 
-    console.log(
-      "Supabase HTTP status:",
-      response.status
-    );
+        redirect: "manual",
 
-    console.log(
-      "Supabase response:",
-      responseText
-    );
+        headers: {
+          "Accept":
+            "application/json,text/plain,*/*"
+        }
+
+      });
+
+    const elapsed =
+      Math.round(
+        performance.now() - started
+      );
+
+    const contentType =
+      response.headers.get(
+        "content-type"
+      ) || "unknown";
+
+    const allowOrigin =
+      response.headers.get(
+        "access-control-allow-origin"
+      ) || "not exposed";
 
     /*
-      HTTP 401 / 403 generally means
-      anonymous access was rejected.
-    */
+     * HTTP responses that demonstrate
+     * the endpoint is reachable.
+     */
 
-    if (response.status === 401 ||
-        response.status === 403) {
+    if (response.status >= 200 &&
+        response.status < 300) {
 
-      showResult(
-        "good",
-        "RLS appears to be blocking direct access.",
-        "✅ DIRECT READ BLOCKED\n\n" +
-        "HTTP STATUS: " +
-        response.status +
-        "\n\n" +
-        "The anonymous client was not allowed " +
-        "to directly read the keys table.\n\n" +
-        "Response:\n" +
-        responseText
+      updateCard(
+        card,
+        "warn",
+        "⚠️ REACHABLE — HTTP " +
+          response.status,
+
+        "Time: " +
+          elapsed +
+          " ms\n" +
+
+        "Content-Type: " +
+          contentType +
+          "\n" +
+
+        "CORS: " +
+          allowOrigin +
+          "\n\n" +
+
+        "The endpoint is publicly reachable.\n" +
+
+        "This alone does NOT mean it is vulnerable."
       );
 
       return;
     }
 
+
     /*
-      A successful response means the anonymous
-      role was allowed to query the endpoint.
-    */
+     * 401 / 403 are generally desirable
+     * for protected operations.
+     */
 
-    if (response.ok) {
+    if (response.status === 401 ||
+        response.status === 403) {
 
-      let data;
+      updateCard(
+        card,
+        "good",
+        "✅ ACCESS CONTROLLED — HTTP " +
+          response.status,
 
-      try {
-        data = JSON.parse(responseText);
-      } catch {
-        data = null;
-      }
+        "Time: " +
+          elapsed +
+          " ms\n" +
 
-      if (Array.isArray(data)) {
+        "Content-Type: " +
+          contentType +
+          "\n\n" +
 
-        const keysExposed = data.some(row =>
-          row &&
-          typeof row.key === "string" &&
-          row.key.length > 0
-        );
-
-        if (keysExposed) {
-
-          showResult(
-            "danger",
-            "CRITICAL: key values were returned.",
-            "🚨 CRITICAL SECURITY ISSUE\n\n" +
-            "HTTP STATUS: 200\n\n" +
-            "The anonymous client was able to read " +
-            "actual key values from the keys table.\n\n" +
-            "Rows returned: " +
-            data.length +
-            "\n\n" +
-            "DO NOT publish this test result publicly.\n\n" +
-            "Your developers should immediately review " +
-            "the Supabase RLS SELECT policy."
-          );
-
-        } else {
-
-          showResult(
-            "warning",
-            "Anonymous table access is allowed.",
-            "⚠️ TABLE ACCESS ALLOWED\n\n" +
-            "HTTP STATUS: 200\n\n" +
-            "The anonymous client can query the " +
-            "keys table, but the returned rows did " +
-            "not contain usable key values.\n\n" +
-            "Rows returned: " +
-            data.length +
-            "\n\n" +
-            "Returned data:\n" +
-            JSON.stringify(
-              data,
-              null,
-              2
-            )
-          );
-        }
-
-      } else {
-
-        showResult(
-          "warning",
-          "Supabase returned HTTP 200.",
-          "⚠️ REQUEST SUCCEEDED\n\n" +
-          "HTTP STATUS: 200\n\n" +
-          responseText
-        );
-      }
+        "The endpoint is reachable but rejected " +
+        "the unauthenticated request."
+      );
 
       return;
     }
 
-    /*
-      Other HTTP status codes.
-    */
 
-    showResult(
-      "warning",
-      "Supabase responded with HTTP " +
+    /*
+     * Other HTTP statuses.
+     */
+
+    updateCard(
+      card,
+      "info",
+      "ℹ️ HTTP " +
         response.status,
-      "⚠️ UNEXPECTED RESPONSE\n\n" +
-      "HTTP STATUS: " +
-      response.status +
-      "\n\n" +
-      responseText
+
+      "Time: " +
+        elapsed +
+        " ms\n" +
+
+      "Content-Type: " +
+        contentType
     );
 
   } catch (error) {
 
     /*
-      If this occurs while hosted over HTTPS,
-      investigate CORS/network configuration.
-    */
+     * Browser CORS failures commonly appear
+     * as TypeError: Failed to fetch.
+     *
+     * That does NOT mean the server is down.
+     */
 
-    showResult(
-      "danger",
-      "The browser could not complete the request.",
-      "❌ REQUEST FAILED\n\n" +
+    if (
+      error instanceof TypeError &&
+      error.message.toLowerCase()
+        .includes("fetch")
+    ) {
+
+      updateCard(
+        card,
+        "info",
+        "ℹ️ BROWSER BLOCKED RESPONSE",
+
+        "The browser could not expose the " +
+        "response to this page.\n\n" +
+
+        "Possible causes:\n" +
+        "• CORS policy\n" +
+        "• Network filtering\n" +
+        "• Endpoint unavailable\n" +
+        "• Redirect blocked by browser\n\n" +
+
+        "This is NOT evidence of a vulnerability."
+      );
+
+      return;
+    }
+
+
+    updateCard(
+      card,
+      "bad",
+      "❌ REQUEST ERROR",
+
       error.name +
-      "\n" +
-      error.message +
-      "\n\n" +
-      "If this page is being opened from file://, " +
-      "host it over HTTPS first.\n\n" +
-      "If it is already hosted over HTTPS, " +
-      "check the browser console and Supabase CORS/network configuration."
+      ": " +
+      error.message
     );
-
-  } finally {
-
-    button.disabled = false;
-    button.textContent = "Run Security Test";
-
   }
 }
 
-</script></body>
-  </html>
+
+/*
+ * Main audit.
+ */
+
+async function runAudit() {
+
+  const button =
+    document.getElementById("run");
+
+  const status =
+    document.getElementById("status");
+
+  const results =
+    document.getElementById("results");
+
+  button.disabled = true;
+
+  button.textContent =
+    "Running Audit...";
+
+  results.innerHTML = "";
+
+  status.textContent =
+    "Testing " +
+    ENDPOINTS.length +
+    " public endpoints...";
+
+
+  /*
+   * Run sequentially rather than hammering
+   * the worker with parallel requests.
+   */
+
+  for (
+    const endpoint of ENDPOINTS
+  ) {
+
+    const card =
+      createCard(endpoint);
+
+    await testEndpoint(
+      endpoint,
+      card
+    );
+
+  }
+
+
+  status.textContent =
+    "Audit complete. " +
+    new Date().toLocaleTimeString();
+
+  button.disabled = false;
+
+  button.textContent =
+    "Run Non-Destructive Audit";
+}
+
+</script>
+
+</body>
+</html>
