@@ -1,0 +1,352 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0"><title>Cokeboys RLS Security Test</title><style>
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(124,58,237,.18), transparent 45%),
+    #07070b;
+  color: #e5e7eb;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.card {
+  width: 100%;
+  max-width: 520px;
+  padding: 24px;
+  border: 1px solid #242432;
+  border-radius: 18px;
+  background: rgba(16,16,24,.96);
+  box-shadow:
+    0 20px 60px rgba(0,0,0,.55),
+    0 0 40px rgba(124,58,237,.08);
+}
+
+.logo {
+  font-family: monospace;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.logo span {
+  color: #a78bfa;
+}
+
+.subtitle {
+  margin-top: 6px;
+  color: #77778a;
+  font-size: 13px;
+}
+
+button {
+  width: 100%;
+  margin-top: 22px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 11px;
+  background: #7c3aed;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:active {
+  transform: scale(.98);
+}
+
+button:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+.result {
+  margin-top: 18px;
+  padding: 15px;
+  min-height: 100px;
+  border: 1px solid #292938;
+  border-radius: 12px;
+  background: #09090e;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.good {
+  border-color: #14532d;
+  color: #86efac;
+}
+
+.warning {
+  border-color: #854d0e;
+  color: #facc15;
+}
+
+.danger {
+  border-color: #7f1d1d;
+  color: #fca5a5;
+}
+
+.info {
+  color: #c4b5fd;
+}
+
+.small {
+  margin-top: 14px;
+  color: #626273;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.status {
+  margin-top: 16px;
+  color: #88889a;
+  font-size: 12px;
+}
+</style></head><body><div class="card">  <div class="logo">
+    COKE<span>BOYS</span>
+  </div>  <div class="subtitle">
+    Supabase RLS Security Test · Read Only
+  </div>  <button id="testButton" onclick="runTest()">
+    Run Security Test
+  </button>  <div id="status" class="status">
+    Ready.
+  </div>  <div id="result" class="result">
+Press "Run Security Test" to begin.
+  </div>  <div class="small">
+    This test only sends GET requests. It does not claim,
+    update, delete, insert, or consume any key.
+  </div></div><script>
+
+const SUPABASE_URL =
+  "https://lixcptmizfmndutoxrxr.supabase.co";
+
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxpeGNwdG1pemZtbmR1dG94cnhyIiwiaWF0IjoxNzgxMDQ2NjQ2LCJleHAiOjIwOTY2MjI2NDZ9.GxHk4LIC9fQbtyeUd0POaX5OoPtM-tbIloY07pYueOc";
+
+const button = document.getElementById("testButton");
+const statusBox = document.getElementById("status");
+const resultBox = document.getElementById("result");
+
+function showResult(type, status, text) {
+
+  resultBox.className = "result " + type;
+
+  statusBox.textContent = status;
+
+  resultBox.textContent = text;
+}
+
+async function runTest() {
+
+  button.disabled = true;
+  button.textContent = "Testing...";
+  
+  showResult(
+    "info",
+    "Connecting to Supabase...",
+    "Running read-only RLS test..."
+  );
+
+  try {
+
+    const endpoint =
+      SUPABASE_URL +
+      "/rest/v1/keys" +
+      "?select=id,key,claimed,used,expires_at" +
+      "&limit=5";
+
+    const response = await fetch(endpoint, {
+      method: "GET",
+
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization":
+          "Bearer " + SUPABASE_ANON_KEY
+      },
+
+      cache: "no-store"
+    });
+
+    const responseText = await response.text();
+
+    console.log(
+      "Supabase HTTP status:",
+      response.status
+    );
+
+    console.log(
+      "Supabase response:",
+      responseText
+    );
+
+    /*
+      HTTP 401 / 403 generally means
+      anonymous access was rejected.
+    */
+
+    if (response.status === 401 ||
+        response.status === 403) {
+
+      showResult(
+        "good",
+        "RLS appears to be blocking direct access.",
+        "✅ DIRECT READ BLOCKED\n\n" +
+        "HTTP STATUS: " +
+        response.status +
+        "\n\n" +
+        "The anonymous client was not allowed " +
+        "to directly read the keys table.\n\n" +
+        "Response:\n" +
+        responseText
+      );
+
+      return;
+    }
+
+    /*
+      A successful response means the anonymous
+      role was allowed to query the endpoint.
+    */
+
+    if (response.ok) {
+
+      let data;
+
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        data = null;
+      }
+
+      if (Array.isArray(data)) {
+
+        const keysExposed = data.some(row =>
+          row &&
+          typeof row.key === "string" &&
+          row.key.length > 0
+        );
+
+        if (keysExposed) {
+
+          showResult(
+            "danger",
+            "CRITICAL: key values were returned.",
+            "🚨 CRITICAL SECURITY ISSUE\n\n" +
+            "HTTP STATUS: 200\n\n" +
+            "The anonymous client was able to read " +
+            "actual key values from the keys table.\n\n" +
+            "Rows returned: " +
+            data.length +
+            "\n\n" +
+            "DO NOT publish this test result publicly.\n\n" +
+            "Your developers should immediately review " +
+            "the Supabase RLS SELECT policy."
+          );
+
+        } else {
+
+          showResult(
+            "warning",
+            "Anonymous table access is allowed.",
+            "⚠️ TABLE ACCESS ALLOWED\n\n" +
+            "HTTP STATUS: 200\n\n" +
+            "The anonymous client can query the " +
+            "keys table, but the returned rows did " +
+            "not contain usable key values.\n\n" +
+            "Rows returned: " +
+            data.length +
+            "\n\n" +
+            "Returned data:\n" +
+            JSON.stringify(
+              data,
+              null,
+              2
+            )
+          );
+        }
+
+      } else {
+
+        showResult(
+          "warning",
+          "Supabase returned HTTP 200.",
+          "⚠️ REQUEST SUCCEEDED\n\n" +
+          "HTTP STATUS: 200\n\n" +
+          responseText
+        );
+      }
+
+      return;
+    }
+
+    /*
+      Other HTTP status codes.
+    */
+
+    showResult(
+      "warning",
+      "Supabase responded with HTTP " +
+        response.status,
+      "⚠️ UNEXPECTED RESPONSE\n\n" +
+      "HTTP STATUS: " +
+      response.status +
+      "\n\n" +
+      responseText
+    );
+
+  } catch (error) {
+
+    /*
+      If this occurs while hosted over HTTPS,
+      investigate CORS/network configuration.
+    */
+
+    showResult(
+      "danger",
+      "The browser could not complete the request.",
+      "❌ REQUEST FAILED\n\n" +
+      error.name +
+      "\n" +
+      error.message +
+      "\n\n" +
+      "If this page is being opened from file://, " +
+      "host it over HTTPS first.\n\n" +
+      "If it is already hosted over HTTPS, " +
+      "check the browser console and Supabase CORS/network configuration."
+    );
+
+  } finally {
+
+    button.disabled = false;
+    button.textContent = "Run Security Test";
+
+  }
+}
+
+</script></body>
+  </html>
